@@ -14,6 +14,9 @@ interface Profile {
   username: string;
   streak_days: number;
   strength_level: number;
+  credits: number;
+  health: number;
+  character_status: string;
 }
 
 interface Badge {
@@ -56,7 +59,7 @@ export default function ProfileScreen() {
 
     const { data } = await supabase
       .from('profiles')
-      .select('username, streak_days, strength_level')
+      .select('username, streak_days, strength_level, credits, health, character_status')
       .eq('id', user.id)
       .single();
 
@@ -101,7 +104,33 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.sectionLabel}>COMMENDATIONS</Text>
+        {/* Survivor Status — game stats */}
+        <Text style={styles.sectionLabel}>SURVIVOR STATUS</Text>
+        <View style={styles.gameStatsRow}>
+          <View style={styles.gameStatCard}>
+            <Text style={styles.gameStatIcon}>💰</Text>
+            <Text style={styles.gameStatValue}>{profile?.credits ?? 0}</Text>
+            <Text style={styles.gameStatLabel}>CREDITS</Text>
+          </View>
+          <View style={styles.gameStatCard}>
+            <Text style={styles.gameStatIcon}>❤️</Text>
+            <Text style={styles.gameStatValue}>{profile?.health ?? 100}</Text>
+            <Text style={styles.gameStatLabel}>HEALTH</Text>
+          </View>
+          <View style={styles.gameStatCard}>
+            <Text style={styles.gameStatIcon}>
+              {profile?.character_status === 'on_mission' ? '🎯' :
+               profile?.character_status === 'injured' ? '🩹' :
+               profile?.character_status === 'weakened' ? '😵' : '🏕️'}
+            </Text>
+            <Text style={[styles.gameStatValue, styles.gameStatStatus]}>
+              {(profile?.character_status ?? 'idle').replace('_', ' ').toUpperCase()}
+            </Text>
+            <Text style={styles.gameStatLabel}>STATUS</Text>
+          </View>
+        </View>
+
+        <Text style={[styles.sectionLabel, { marginTop: 12 }]}>COMMENDATIONS</Text>
         <View style={styles.badgesGrid}>
           {BADGES.map((badge) => {
             const unlocked = streak >= badge.days;
@@ -207,6 +236,39 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     letterSpacing: 3,
     marginBottom: 12,
+  },
+  gameStatsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 24,
+  },
+  gameStatCard: {
+    flex: 1,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  gameStatIcon: {
+    fontSize: 20,
+    marginBottom: 6,
+  },
+  gameStatValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#F5F5F5',
+    marginBottom: 4,
+  },
+  gameStatStatus: {
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  gameStatLabel: {
+    fontSize: 8,
+    fontWeight: '700',
+    color: '#6B7280',
+    letterSpacing: 1,
   },
   badgesGrid: {
     flexDirection: 'row',

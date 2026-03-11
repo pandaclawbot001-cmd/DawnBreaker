@@ -21,30 +21,80 @@ interface Profile {
 export default function HomeScreen({ navigation }: any) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [checkedInToday, setCheckedInToday] = useState(false);
+  const [worldRebuildPercent, setWorldRebuildPercent] = useState(0);
+  const [totalStreakDays, setTotalStreakDays] = useState(0);
+
+  const WORLD_GOAL = 10000; // global streak-days target
 
   useEffect(() => {
-    loadProfile();
+    loadAll();
   }, []);
 
-  async function loadProfile() {
+  async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    await Promise.all([
+      loadProfile(user.id),
+      loadWorldRebuild(),
+    ]);
+  }
+
+  async function loadProfile(userId: string) {
     const { data } = await supabase
       .from('profiles')
       .select('username, streak_days, strength_level, last_check_in')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
 
-    if (data) {
-      setProfile(data);
-      if (data.last_check_in) {
-        const lastCheckIn = new Date(data.last_check_in);
-        const today = new Date();
-        setCheckedInToday(
-          lastCheckIn.toDateString() === today.toDateString()
+    if (!data) return;
+
+    // ── Streak break detection ───────────────────────────────────────────────
+    if (data.streak_days > 0 && data.last_check_in) {
+      const lastCheckIn = new Date(data.last_check_in);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const checkedInToday = lastCheckIn.toDateString() === today.toDateString();
+      const checkedInYesterday = lastCheckIn.toDateString() === yesterday.toDateString();
+
+      if (!checkedInToday && !checkedInYesterday) {
+        // Missed at least one full day — break the streak
+        await supabase
+          .from('profiles')
+          .update({ streak_days: 0, strength_level: 1 })
+          .eq('id', userId);
+
+        data.streak_days = 0;
+        data.strength_level = 1;
+
+        Alert.alert(
+          'STREAK BROKEN',
+          'YOUR STREAK HAS BEEN BROKEN.\n\nThe darkness reclaimed what you abandoned. Rise again.',
+          [{ text: 'I WILL NOT FAIL AGAIN', style: 'default' }]
         );
       }
+
+      setCheckedInToday(checkedInToday);
+    } else if (data.last_check_in) {
+      const lastCheckIn = new Date(data.last_check_in);
+      const today = new Date();
+      setCheckedInToday(lastCheckIn.toDateString() === today.toDateString());
+    }
+
+    setProfile(data);
+  }
+
+  async function loadWorldRebuild() {
+    const { data } = await supabase
+      .from('profiles')
+      .select('streak_days');
+
+    if (data) {
+      const total = data.reduce((sum: number, row: any) => sum + (row.streak_days ?? 0), 0);
+      setTotalStreakDays(total);
+      setWorldRebuildPercent(Math.min((total / WORLD_GOAL) * 100, 100));
     }
   }
 
@@ -77,12 +127,15 @@ export default function HomeScreen({ navigation }: any) {
 
     setCheckedInToday(true);
     setProfile(prev => prev ? { ...prev, streak_days: newStreak, strength_level: newLevel } : prev);
+
+    // Refresh world rebuild meter
+    loadWorldRebuild();
+
     Alert.alert('CHECKED IN', 'You survived another day. Keep fighting.');
   }
 
   const streak = profile?.streak_days ?? 0;
   const level = profile?.strength_level ?? 1;
-  const worldRebuildPercent = Math.min((streak / 365) * 100, 100);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -109,7 +162,7 @@ export default function HomeScreen({ navigation }: any) {
           </LinearGradient>
         </View>
 
-        {/* Strength Level */}
+        {/* Strength Level + World Rebuild */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>STRENGTH LEVEL</Text>
@@ -120,7 +173,7 @@ export default function HomeScreen({ navigation }: any) {
             <Text style={styles.statSub}>{7 - (streak % 7)} DAYS TO NEXT LEVEL</Text>
           </View>
 
-          {/* World Rebuild Meter */}
+          {/* World Rebuild Meter — now GLOBAL */}
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>WORLD REBUILD</Text>
             <Text style={styles.statValue}>{worldRebuildPercent.toFixed(1)}%</Text>
@@ -132,7 +185,7 @@ export default function HomeScreen({ navigation }: any) {
                 style={[styles.levelFill, styles.worldFill, { width: `${worldRebuildPercent}%` }]}
               />
             </View>
-            <Text style={styles.statSub}>GOAL: 365 DAYS</Text>
+            <Text style={styles.statSub}>{totalStreakDays.toLocaleString()} / 10,000 DAYS</Text>
           </View>
         </View>
 

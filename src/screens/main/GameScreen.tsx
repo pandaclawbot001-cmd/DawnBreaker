@@ -64,6 +64,15 @@ interface FieldReport {
   created_at: string;
 }
 
+interface MissionHistoryEntry {
+  id: string;
+  mission_name: string;
+  status: 'completed' | 'failed';
+  outcome_credits: number | null;
+  outcome_notes: string | null;
+  started_at: string;
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const FIELD_REPORTS = {
@@ -391,6 +400,7 @@ export default function GameScreen() {
   const [fieldReports, setFieldReports] = useState<FieldReport[]>([]);
   const [countdown, setCountdown] = useState('');
   const [latestReport, setLatestReport] = useState<FieldReport | null>(null);
+  const [missionHistory, setMissionHistory] = useState<MissionHistoryEntry[]>([]);
 
   const isOnMission = profile?.character_status === 'on_mission';
 
@@ -414,7 +424,7 @@ export default function GameScreen() {
     setLoading(true);
     try {
       await loadProfileAndMission();
-      await Promise.all([loadInventory(), loadMissions(), loadFieldReports()]);
+      await Promise.all([loadInventory(), loadMissions(), loadFieldReports(), loadMissionHistory()]);
     } finally {
       setLoading(false);
     }
@@ -494,6 +504,21 @@ export default function GameScreen() {
       .select('*')
       .order('duration_hours', { ascending: true });
     if (data) setMissions(data as MissionTemplate[]);
+  }
+
+  async function loadMissionHistory() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase
+      .from('character_missions')
+      .select('id, mission_name, status, outcome_credits, outcome_notes, started_at')
+      .eq('user_id', user.id)
+      .in('status', ['completed', 'failed'])
+      .order('started_at', { ascending: false })
+      .limit(5);
+    if (data) setMissionHistory(data as MissionHistoryEntry[]);
   }
 
   async function loadFieldReports() {
@@ -920,6 +945,40 @@ export default function GameScreen() {
           </>
         )}
 
+        {/* Mission History */}
+        {missionHistory.length > 0 && (
+          <>
+            <View style={[styles.sectionHeader, { marginTop: 8 }]}>
+              <Text style={styles.sectionTitle}>MISSION HISTORY</Text>
+            </View>
+            {missionHistory.map((entry) => {
+              const isComplete = entry.status === 'completed';
+              const statusColor = isComplete ? '#16A34A' : '#DC2626';
+              return (
+                <View key={entry.id} style={styles.historyCard}>
+                  <View style={styles.historyCardTop}>
+                    <Text style={styles.historyMissionName}>{entry.mission_name}</Text>
+                    <View style={[styles.historyStatusBadge, { borderColor: statusColor }]}>
+                      <Text style={[styles.historyStatusText, { color: statusColor }]}>
+                        {isComplete ? 'COMPLETE' : 'FAILED'}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={styles.historyCardBottom}>
+                    <Text style={styles.historyTime}>{formatRelativeTime(entry.started_at)}</Text>
+                    {entry.outcome_credits != null && entry.outcome_credits > 0 && (
+                      <Text style={styles.historyCredits}>+{entry.outcome_credits} CREDITS</Text>
+                    )}
+                  </View>
+                  {entry.outcome_notes && (
+                    <Text style={styles.historyNotes}>"{entry.outcome_notes}"</Text>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
+
         <View style={{ height: 24 }} />
       </ScrollView>
     </SafeAreaView>
@@ -1182,6 +1241,63 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#E85D04',
     letterSpacing: 3,
+  },
+
+  // Mission history
+  historyCard: {
+    marginHorizontal: 20,
+    marginBottom: 8,
+    backgroundColor: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    padding: 14,
+  },
+  historyCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  historyMissionName: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#F5F5F5',
+    letterSpacing: 1,
+    flex: 1,
+  },
+  historyStatusBadge: {
+    borderWidth: 1,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  historyStatusText: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 1,
+  },
+  historyCardBottom: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  historyTime: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#3A3A3A',
+    letterSpacing: 2,
+  },
+  historyCredits: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#E85D04',
+    letterSpacing: 1,
+  },
+  historyNotes: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    color: '#6B7280',
+    lineHeight: 16,
   },
 
   // Field log
