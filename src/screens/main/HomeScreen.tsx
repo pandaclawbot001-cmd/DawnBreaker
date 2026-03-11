@@ -30,6 +30,12 @@ export default function HomeScreen({ navigation }: any) {
     loadAll();
   }, []);
 
+  // Refresh when screen comes into focus (e.g. after returning from SOS)
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', loadAll);
+    return unsubscribe;
+  }, [navigation]);
+
   async function loadAll() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;

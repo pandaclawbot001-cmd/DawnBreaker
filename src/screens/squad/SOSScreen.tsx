@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
+import { sendSOSNotification } from '../../../lib/notifications';
 
 export default function SOSScreen({ navigation }: any) {
   async function handleSendSOS() {
@@ -25,7 +26,7 @@ export default function SOSScreen({ navigation }: any) {
 
             const { data: profile } = await supabase
               .from('profiles')
-              .select('squad_id')
+              .select('squad_id, username')
               .eq('id', user.id)
               .single();
 
@@ -45,6 +46,9 @@ export default function SOSScreen({ navigation }: any) {
               Alert.alert('SIGNAL FAILED', error.message);
               return;
             }
+
+            // Fire push notifications to squad members
+            sendSOSNotification(profile.squad_id, profile.username ?? 'SOLDIER').catch(console.error);
 
             Alert.alert('SIGNAL SENT', 'Your squad has been alerted. Hold your position.', [
               { text: 'COPY', onPress: () => navigation.goBack() },

@@ -5,6 +5,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text, ActivityIndicator } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
+import { registerForPushNotifications } from './lib/notifications';
 
 // Auth screens
 import WelcomeScreen from './src/screens/auth/WelcomeScreen';
@@ -117,6 +118,10 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      // Register push token whenever user signs in
+      if (session) {
+        registerForPushNotifications().catch(console.error);
+      }
     });
 
     return () => subscription.unsubscribe();
