@@ -14,6 +14,7 @@ import LoginScreen from './src/screens/auth/LoginScreen';
 // Main screens
 import HomeScreen from './src/screens/main/HomeScreen';
 import SquadScreen from './src/screens/main/SquadScreen';
+import GameScreen from './src/screens/main/GameScreen';
 import ProfileScreen from './src/screens/main/ProfileScreen';
 import LeaderboardScreen from './src/screens/main/LeaderboardScreen';
 
@@ -65,6 +66,11 @@ function TabNavigator() {
         name="Squad"
         component={SquadScreen}
         options={{ tabBarLabel: 'SQUAD' }}
+      />
+      <Tab.Screen
+        name="Game"
+        component={GameScreen}
+        options={{ tabBarLabel: 'WORLD' }}
       />
       <Tab.Screen
         name="Leaderboard"

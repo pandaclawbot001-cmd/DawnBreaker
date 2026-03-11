@@ -107,6 +107,37 @@ npx expo export --platform web
 
 ---
 
+## 🎮 Survival Game (WORLD Tab)
+
+DawnBreaker includes a Tabikaeru-inspired survival game where your streak powers your character.
+
+### Apply the Game Schema
+
+After running the base `schema.sql`, apply the game schema:
+
+1. Go to your Supabase dashboard → **SQL Editor** → **New query**
+2. Open `supabase/game-schema.sql` from this repo and paste the entire contents
+3. Click **Run**
+
+This adds game columns to `profiles` and creates these tables:
+
+| Table | Purpose |
+|---|---|
+| inventory | Per-user resources (food, medicine, scrap, energy) |
+| mission_templates | 8 seeded mission types with risk/reward config |
+| character_missions | Active and completed missions per user |
+| field_reports | Postcards from the field while on mission |
+
+### How it works
+
+- **Real-life streak = combat strength** — higher streak → better mission success odds
+- **Assign missions** from base camp (2–12 hour real-time durations)
+- **Character goes away** while on mission; returns with loot
+- **Field reports** arrive while away; tap CHECK IN for updates
+- **Outcome logic** — success/partial/fail based on streak vs. risk level
+
+---
+
 ## 📊 Database Schema
 
 | Table | Purpose |
