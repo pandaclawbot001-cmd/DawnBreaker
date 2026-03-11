@@ -10,7 +10,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
-import { scheduleDailyCheckInReminder, cancelTodaysReminder } from '../../../lib/notifications';
+import {
+  scheduleDailyCheckInReminder,
+  cancelTodaysReminder,
+  sendSquadNotification,
+} from '../../../lib/notifications';
 
 interface Profile {
   username: string;
@@ -146,6 +150,21 @@ export default function HomeScreen({ navigation }: any) {
 
     // Refresh world rebuild meter
     loadWorldRebuild();
+
+    // Notify squad that this soldier checked in
+    const { data: squadProfile } = await supabase
+      .from('profiles')
+      .select('squad_id, username')
+      .eq('id', user.id)
+      .single();
+    if (squadProfile?.squad_id) {
+      sendSquadNotification(
+        squadProfile.squad_id,
+        '✅ SQUAD CHECK-IN',
+        `${(squadProfile.username ?? 'A soldier').toUpperCase()} survived another day. Day ${newStreak}.`,
+        user.id
+      ).catch(console.error);
+    }
 
     // Cancel today's reminder — soldier reported in
     cancelTodaysReminder().catch(console.error);

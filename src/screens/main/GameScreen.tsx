@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Svg, { Rect, Circle, Path, G, Line } from 'react-native-svg';
 import { supabase } from '../../../lib/supabase';
+import { scheduleMissionCompleteNotification } from '../../../lib/notifications';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -700,6 +701,9 @@ export default function GameScreen() {
               .from('profiles')
               .update({ character_status: 'on_mission' })
               .eq('id', user.id);
+
+            // Schedule local notification for mission return
+            scheduleMissionCompleteNotification(template.name, endsAt).catch(console.error);
 
             // Initial field report on deploy
             await supabase.from('field_reports').insert({

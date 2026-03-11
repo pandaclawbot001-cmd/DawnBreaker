@@ -175,6 +175,35 @@ export async function scheduleDailyCheckInReminder(): Promise<void> {
 }
 
 /**
+ * Schedule a local notification for when a mission completes.
+ * Call this when a mission is assigned with the ends_at timestamp.
+ */
+export async function scheduleMissionCompleteNotification(
+  missionName: string,
+  endsAt: string
+): Promise<void> {
+  try {
+    const triggerDate = new Date(endsAt);
+    if (triggerDate <= new Date()) return; // already past
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '🏕️ SOLDIER RETURNED',
+        body: `${missionName} — your survivor is back. Check the debrief.`,
+        sound: 'default',
+        data: { type: 'mission_complete', missionName },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: triggerDate,
+      },
+    });
+  } catch (err) {
+    console.error('[Push] Failed to schedule mission notification:', err);
+  }
+}
+
+/**
  * Cancel the daily check-in reminder (call after user checks in for the day).
  * Will be re-scheduled tomorrow by the next app open.
  */
