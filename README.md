@@ -63,13 +63,14 @@ src/
 
 ## 🎮 Features
 
-- **Streak Tracking** — Daily check-in keeps your streak alive
+- **Streak Tracking** — Daily check-in keeps your streak alive; miss a day and it resets
 - **Survivor Squads** — Groups of 3–8 for real accountability
 - **Real-time Squad Chat** — Live messaging with Supabase Realtime
-- **🚨 SOS Emergency** — Instant alert to your entire squad
+- **🚨 SOS Emergency** — Instant push notification to your entire squad's phones
 - **Badges** — Earn ranks from Recruit to Immortal
-- **World Rebuild Meter** — Collective progress of all survivors
+- **World Rebuild Meter** — Global collective progress across all survivors (goal: 10,000 days)
 - **Leaderboards** — Global top 20 by streak days
+- **Daily Reminder** — Local push notification at 8pm if you haven't checked in
 
 ---
 
@@ -110,6 +111,16 @@ npx expo export --platform web
 ## 🎮 Survival Game (WORLD Tab)
 
 DawnBreaker includes a Tabikaeru-inspired survival game where your streak powers your character.
+
+### Apply the Push Notifications Schema
+
+After the game schema, apply the push notifications schema:
+
+1. Go to your Supabase dashboard → **SQL Editor** → **New query**
+2. Open `supabase/push-notifications-schema.sql` and paste the contents
+3. Click **Run**
+
+This adds the `push_tokens` table which stores Expo push tokens per device.
 
 ### Apply the Game Schema
 

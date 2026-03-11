@@ -143,6 +143,54 @@ export async function sendSOSNotification(
 }
 
 /**
+ * Schedule a daily local reminder at 8pm to check in.
+ * Cancels any existing reminder first so we don't stack duplicates.
+ */
+export async function scheduleDailyCheckInReminder(): Promise<void> {
+  try {
+    // Cancel existing daily reminders
+    const existing = await Notifications.getAllScheduledNotificationsAsync();
+    const reminderIds = existing
+      .filter((n) => n.content.data?.type === 'daily_reminder')
+      .map((n) => n.identifier);
+    await Promise.all(reminderIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+
+    // Schedule daily at 20:00
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚠️ YOU HAVEN\'T CHECKED IN',
+        body: 'The darkness is closing in. Report your status now.',
+        sound: 'default',
+        data: { type: 'daily_reminder' },
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: 20,
+        minute: 0,
+      },
+    });
+  } catch (err) {
+    console.error('[Push] Failed to schedule daily reminder:', err);
+  }
+}
+
+/**
+ * Cancel the daily check-in reminder (call after user checks in for the day).
+ * Will be re-scheduled tomorrow by the next app open.
+ */
+export async function cancelTodaysReminder(): Promise<void> {
+  try {
+    const existing = await Notifications.getAllScheduledNotificationsAsync();
+    const reminderIds = existing
+      .filter((n) => n.content.data?.type === 'daily_reminder')
+      .map((n) => n.identifier);
+    await Promise.all(reminderIds.map((id) => Notifications.cancelScheduledNotificationAsync(id)));
+  } catch (err) {
+    console.error('[Push] Failed to cancel reminder:', err);
+  }
+}
+
+/**
  * Send a generic squad notification (e.g., new message, check-in reminder).
  */
 export async function sendSquadNotification(

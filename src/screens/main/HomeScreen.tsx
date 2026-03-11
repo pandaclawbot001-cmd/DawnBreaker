@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../../lib/supabase';
+import { scheduleDailyCheckInReminder, cancelTodaysReminder } from '../../../lib/notifications';
 
 interface Profile {
   username: string;
@@ -83,10 +84,19 @@ export default function HomeScreen({ navigation }: any) {
       }
 
       setCheckedInToday(checkedInToday);
+    // If already checked in today, no reminder needed
+    if (checkedInToday) cancelTodaysReminder().catch(console.error);
+    else scheduleDailyCheckInReminder().catch(console.error);
     } else if (data.last_check_in) {
       const lastCheckIn = new Date(data.last_check_in);
       const today = new Date();
-      setCheckedInToday(lastCheckIn.toDateString() === today.toDateString());
+      const alreadyCheckedIn = lastCheckIn.toDateString() === today.toDateString();
+      setCheckedInToday(alreadyCheckedIn);
+      if (alreadyCheckedIn) cancelTodaysReminder().catch(console.error);
+      else scheduleDailyCheckInReminder().catch(console.error);
+    } else {
+      // Never checked in — schedule reminder
+      scheduleDailyCheckInReminder().catch(console.error);
     }
 
     setProfile(data);
@@ -136,6 +146,9 @@ export default function HomeScreen({ navigation }: any) {
 
     // Refresh world rebuild meter
     loadWorldRebuild();
+
+    // Cancel today's reminder — soldier reported in
+    cancelTodaysReminder().catch(console.error);
 
     Alert.alert('CHECKED IN', 'You survived another day. Keep fighting.');
   }
