@@ -51,22 +51,16 @@ export default function SignUpScreen({ navigation }: any) {
         }
       }
 
-      // Step 3: If no session yet (email confirmation required), sign in immediately
+      // Step 3: Email confirmation required — show instructions and redirect to login
       if (!data.session) {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-
-        if (signInError) {
-          // Email confirmation is enabled — can't auto sign-in
-          Alert.alert(
-            'ALMOST THERE',
-            'Check your email and confirm your account, then come back and log in.',
-            [{ text: 'COPY THAT', onPress: () => navigation.navigate('Login') }]
-          );
-          return;
-        }
-        // signIn success — onAuthStateChange in App.tsx will handle navigation
+        Alert.alert(
+          '📬 CONFIRM YOUR EMAIL',
+          `A confirmation link has been sent to:\n\n${email}\n\nOpen it to activate your account, then log in here.`,
+          [{ text: 'COPY THAT', onPress: () => navigation.navigate('Login') }]
+        );
+        return;
       }
-      // If data.session exists, onAuthStateChange fires automatically
+      // If data.session exists (email confirmation off), onAuthStateChange fires automatically
     } catch (err: any) {
       Alert.alert('RECRUITMENT FAILED', err.message);
     } finally {
