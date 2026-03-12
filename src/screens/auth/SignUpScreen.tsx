@@ -30,16 +30,43 @@ export default function SignUpScreen({ navigation }: any) {
 
     setLoading(true);
     try {
+      // Step 1: Create auth user
       const { data, error } = await supabase.auth.signUp({ email, password });
       if (error) throw error;
 
+      // Supabase returns a fake user with empty identities if the email is already registered
+      if (data.user && data.user.identities?.length === 0) {
+        throw new Error('An account with this email already exists. Try logging in instead.');
+      }
+
+      // Step 2: Create profile record
       if (data.user) {
         const { error: profileError } = await supabase.from('profiles').insert({
           id: data.user.id,
           username: username.trim(),
         });
-        if (profileError) throw profileError;
+        // Ignore duplicate profile errors (user may have been created before)
+        if (profileError && !profileError.message.includes('duplicate')) {
+          throw profileError;
+        }
       }
+
+      // Step 3: If no session yet (email confirmation required), sign in immediately
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+
+        if (signInError) {
+          // Email confirmation is enabled — can't auto sign-in
+          Alert.alert(
+            'ALMOST THERE',
+            'Check your email and confirm your account, then come back and log in.',
+            [{ text: 'COPY THAT', onPress: () => navigation.navigate('Login') }]
+          );
+          return;
+        }
+        // signIn success — onAuthStateChange in App.tsx will handle navigation
+      }
+      // If data.session exists, onAuthStateChange fires automatically
     } catch (err: any) {
       Alert.alert('RECRUITMENT FAILED', err.message);
     } finally {
